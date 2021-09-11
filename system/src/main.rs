@@ -1,4 +1,4 @@
-// Will be run in isolated environment.
+// Runs in jail.
 
 fn main() {
     println!("I am executing in an isolated environment!");
@@ -7,4 +7,6 @@ fn main() {
     for entry in walkdir::WalkDir::new("/") {
         println!("  {}", entry.unwrap().path().display());
     }
+
+    // FIXME: List mounts; how?
 }

@@ -13,6 +13,11 @@
 #include <fmt/core.h>
 
 // FIXME: To which extend can we use this to run untrusted code?
+//
+//        Can we mount procfs back in?
+
+// FIXME: If we didn't remove the mount of the old root, would this
+//        cause issues?  Could we escape the sandbox?
 
 // FIXME: Error handling
 
@@ -27,41 +32,34 @@ int child_main(void *) {
     // Do not propagate changes to mounts to other namespaces.  Note that we are in
     // a new namespace because of 'CLONE_NEWNS'.
     {
-        // FIXME: What would happen if we didn't do this?
-
         int retval = mount(nullptr, "/", nullptr, MS_REC|MS_PRIVATE, nullptr);
         assert(retval == 0);
     }
 
     // To be able to use 'pivot_root', the target directory needs to be a mount point.
     {
-        // FIXME: What does this do precisely?
-
         int retval = mount(container_directory, container_directory, nullptr, MS_BIND, nullptr);
         assert(retval == 0);
     }
 
-    // Make the container directory the root '/'.
+    // Change the '/' mount point to the container directory.
     {
         int retval;
         
         retval = chdir(container_directory);
         assert(retval == 0);
 
-        // FIXME: Why swap the directores instead of just replacing it?
-
         // This sets our container directory as root mount, but it also makes the old root
         // mount avaliable at '/'.
         retval = syscall(SYS_pivot_root, ".", ".");
         assert(retval == 0);
 
-        // FIXME: Do we need another 'chroot("/")' here?
+        // We do not need to unmount '.' since we call execve later.
+    }
 
-        // FIXME: If we didn't remove the mount here, could we escape by remounting '/' to
-        //        something else?
-
-        // Get rid of the old mount, this is a bit weird since old and new mount are identical.
-        retval = umount2(".", MNT_DETACH);
+    // Now change what '/' means in the path resolution process.
+    {
+        int retval = chroot(".");
         assert(retval == 0);
     }
 
@@ -75,6 +73,8 @@ int child_main(void *) {
             nullptr
         };
 
+        // This will remove the last reference to the old root mount at '.'; it will automatically
+        // be unmounted.
         execve("/app", argv, envp);
 
         // Never reached.
@@ -103,7 +103,6 @@ int main() {
     // Create new process in new namespaces.
     pid_t child_pid = -1;
     {
-        // FIXME: Verify that all flags make sense and that none are missing.
         child_pid = clone(
             child_main,
             child_stack.top,
