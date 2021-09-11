@@ -6,55 +6,55 @@ extern crate libc;
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
 
-    // let working_directory = /* ... */;
-    // chmod(/* ... */);
+fn verify_has_root_privileges() {
+    unsafe {
+        if libc::geteuid() != 0 {
+            panic!();
+        }
+    }
+}
 
-    // unshare(CLONE_NEWCGROUP | CLONE_NEWIPC | CLONE_NEWNET | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWTIME | CLONE_NEWUSER | CLONE_NEWUTS)
-    // // Not all 'unshare' operations can be applied directly, we need to create a new process
-    // // that does the required operations.
-    // fork()
+// FIXME: Can I make this a std::path::Path object?
+const CONTAINER_DIRECTORY: &str = "/tmp/asynts-containers";
 
-    // // If we don't do this, we could modify the mounts of the host.  This appears to be
-    // // necessary for 'pivot_root'.
-    // mount(NULL, working_directory, NULL, MS_SLAVE, NULL);
+fn prepare_container_directory() {
+    if std::path::Path::new(CONTAINER_DIRECTORY).exists() {
+        std::fs::remove_dir_all(CONTAINER_DIRECTORY).unwrap();
+    }
 
-    // // This should prevent a super user from escaping the chroot.
-    // chdir(working_directory)
-    // pivot_root(.)
-    // chroot(.)
+    std::fs::create_dir(CONTAINER_DIRECTORY).unwrap();
+    std::fs::set_permissions(CONTAINER_DIRECTORY, std::fs::Permissions::from_mode(0o00700)).unwrap();
 
-    // execve(/* ... */)
-
-fn create_container_directory() -> tempfile::TempDir {
-    // We put the executable into a directory that is only accessible by us.
-    let working_directory = tempfile::Builder::new()
-        .prefix("container.")
-        .rand_bytes(8)
-        .tempdir()
-        .unwrap();
-    std::fs::set_permissions(working_directory.path(), std::fs::Permissions::from_mode(0o00700)).unwrap();
-
-    working_directory
+    std::fs::copy(
+        "/home/me/dev/containers/target/x86_64-unknown-linux-musl/debug/asynts-containers-system",
+        std::path::Path::new(CONTAINER_DIRECTORY).join("app")
+    ).unwrap();
 }
 
 extern "C"
 fn child_main(_: *mut libc::c_void) -> libc::c_int {
+    // FIXME: Set mount type MS_SLAVE
+
+    // FIXME: Mount CONTAINER_DIRECTORY?
+
+    // FIXME: Call pivot_root
+
+    std::os::unix::fs::chroot(CONTAINER_DIRECTORY).unwrap();
+    std::env::set_current_dir("/").unwrap();
+
     std::process::Command::new("./app")
         .env_clear()
         .exec();
     
     unreachable!();
 }
-fn create_container_process(_container_directory: &tempfile::TempDir) {
+fn create_container_process() {
     let stack_size = 0x1000;
     let mut stack: Vec<u8> = vec![0; stack_size];
 
-    // FIXME: We don't use '_container_directory' here, but we have to.
-    //        Maybe we could fork() + unshare() + fork()
-    //
-    //        Alternatively, we could destroy the parent process.
-
+    // FIXME: Save process id
     unsafe {
+        // FIXME: Do all the flags make sense?
         libc::clone(
             child_main,
             stack.as_mut_ptr().offset(stack_size.try_into().unwrap()) as *mut libc::c_void,
@@ -65,15 +65,11 @@ fn create_container_process(_container_directory: &tempfile::TempDir) {
 }
 
 fn main() {
-    // Many of the operations here require root pivileges.
-    unsafe {
-        if libc::geteuid() != 0 {
-            panic!();
-        }
-    }
+    verify_has_root_privileges();
 
-    let container_directory = create_container_directory();
-    let _container_process = create_container_process(&container_directory);
+    prepare_container_directory();
 
-    // FIXME: Can we communicate with the process?
+    let _container_process = create_container_process();
+
+    // FIXME: Wait for process to finish.
 }
