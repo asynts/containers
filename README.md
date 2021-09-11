@@ -16,8 +16,14 @@
     cargo build --package asynts-containers-system --target x86_64-unknown-linux-musl
     ~~~
 
--   Now we can build and run the jail executable on the host system:
+-   Now we can build jail executable that prepares the enviroment and executes the system:
 
     ~~~none
-    cargo run --package asynts-containers-host
+    cargo build --package asynts-containers-host
+    ~~~
+
+-   Now, we can run the system:
+
+    ~~~none
+    sudo ./target/debug/asynts-containers-host
     ~~~
