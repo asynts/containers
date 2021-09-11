@@ -1,3 +1,5 @@
+// Launch application in jail.
+
 #include <unistd.h>
 #include <assert.h>
 #include <sched.h>
@@ -9,6 +11,8 @@
 #include <filesystem>
 
 #include <fmt/core.h>
+
+// FIXME: To which extend can we use this to run untrusted code?
 
 // FIXME: Error handling
 
@@ -23,6 +27,8 @@ int child_main(void *) {
     // Do not propagate changes to mounts to other namespaces.  Note that we are in
     // a new namespace because of 'CLONE_NEWNS'.
     {
+        // FIXME: What would happen if we didn't do this?
+
         int retval = mount(nullptr, "/", nullptr, MS_REC|MS_PRIVATE, nullptr);
         assert(retval == 0);
     }
@@ -42,17 +48,24 @@ int child_main(void *) {
         retval = chdir(container_directory);
         assert(retval == 0);
 
+        // FIXME: Why swap the directores instead of just replacing it?
+
         // This sets our container directory as root mount, but it also makes the old root
         // mount avaliable at '/'.
         retval = syscall(SYS_pivot_root, ".", ".");
         assert(retval == 0);
+
+        // FIXME: Do we need another 'chroot("/")' here?
+
+        // FIXME: If we didn't remove the mount here, could we escape by remounting '/' to
+        //        something else?
 
         // Get rid of the old mount, this is a bit weird since old and new mount are identical.
         retval = umount2(".", MNT_DETACH);
         assert(retval == 0);
     }
 
-    // Everything has been prepared.
+    // Everything has been prepared; launch the application.
     {
         char *argv[] = {
             strdup("/app"),
