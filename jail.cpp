@@ -18,6 +18,11 @@
 
 // FIXME: If we didn't remove the mount of the old root, would this
 //        cause issues?  Could we escape the sandbox?
+//
+//        If we change the old parameter to new 'root' directory, we
+//        gain access to everything!
+
+// FIXME: Rewrite target application in C++ as well.
 
 // FIXME: Error handling
 
@@ -66,7 +71,7 @@ int child_main(void *) {
     // Everything has been prepared; launch the application.
     {
         char *argv[] = {
-            strdup("/app"),
+            strdup("/application"),
             nullptr
         };
         char *envp[] = {
@@ -75,7 +80,7 @@ int child_main(void *) {
 
         // This will remove the last reference to the old root mount at '.'; it will automatically
         // be unmounted.
-        execve("/app", argv, envp);
+        execve("/application", argv, envp);
 
         // Never reached.
         assert(0);
@@ -95,8 +100,8 @@ int main() {
         fmt::print("creating container in {}\n", container_directory);
 
         std::filesystem::copy(
-            "/home/me/dev/containers/target/x86_64-unknown-linux-musl/debug/asynts-containers-system",
-            std::filesystem::path{container_directory} / "app"
+            "/home/me/dev/containers/build/application",
+            std::filesystem::path{container_directory} / "application"
         );
     }
 
