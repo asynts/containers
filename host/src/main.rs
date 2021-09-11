@@ -1,8 +1,15 @@
 // Start target in isolated environment.
 
 extern crate tempfile;
+extern crate libc;
 
+use std::io::Write;
+
+use std::os::unix::fs::PermissionsExt;
+
+/*
 use std::os::unix::process::CommandExt;
+*/
 
     // let working_directory = /* ... */;
     // chmod(/* ... */);
@@ -24,8 +31,28 @@ use std::os::unix::process::CommandExt;
     // execve(/* ... */)
 
 fn main() {
-    // FIXME: setup namespace
-    // FIXME: all the other stuff
+    // Many of the operations here require root pivileges.
+    unsafe {
+        if libc::geteuid() != 0 {
+            panic!();
+        }
+    }
+
+    // We will put the executable into a directory that is only accessible by us.
+    let working_directory = tempfile::Builder::new()
+        .prefix("container.")
+        .rand_bytes(8)
+        .tempdir()
+        .unwrap();
+    std::fs::set_permissions(working_directory.path(), std::fs::Permissions::from_mode(0o00700)).unwrap();
+
+    print!("Press ENTER to continue...");
+    std::io::stdout().flush().unwrap();
+    let mut _string = String::new();
+    std::io::stdin().read_line(&mut _string).unwrap();
+}
+    
+/*
 
     let working_directory = tempfile::tempdir().unwrap();
 
@@ -44,3 +71,4 @@ fn main() {
     
     unreachable!();
 }
+*/
