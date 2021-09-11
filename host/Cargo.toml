@@ -1,8 +1,0 @@
-[package]
-name = "asynts-containers-host"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-tempfile = "3"
-libc = "0.2"
