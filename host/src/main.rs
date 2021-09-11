@@ -1,15 +1,10 @@
-// Start target in isolated environment.
+// Launch system in isolated environment.
 
 extern crate tempfile;
 extern crate libc;
 
-use std::io::Write;
-
 use std::os::unix::fs::PermissionsExt;
-
-/*
 use std::os::unix::process::CommandExt;
-*/
 
     // let working_directory = /* ... */;
     // chmod(/* ... */);
@@ -30,6 +25,45 @@ use std::os::unix::process::CommandExt;
 
     // execve(/* ... */)
 
+fn create_container_directory() -> tempfile::TempDir {
+    // We put the executable into a directory that is only accessible by us.
+    let working_directory = tempfile::Builder::new()
+        .prefix("container.")
+        .rand_bytes(8)
+        .tempdir()
+        .unwrap();
+    std::fs::set_permissions(working_directory.path(), std::fs::Permissions::from_mode(0o00700)).unwrap();
+
+    working_directory
+}
+
+extern "C"
+fn child_main(_: *mut libc::c_void) -> libc::c_int {
+    std::process::Command::new("./app")
+        .env_clear()
+        .exec();
+    
+    unreachable!();
+}
+fn create_container_process(_container_directory: &tempfile::TempDir) {
+    let stack_size = 0x1000;
+    let mut stack: Vec<u8> = vec![0; stack_size];
+
+    // FIXME: We don't use '_container_directory' here, but we have to.
+    //        Maybe we could fork() + unshare() + fork()
+    //
+    //        Alternatively, we could destroy the parent process.
+
+    unsafe {
+        libc::clone(
+            child_main,
+            stack.as_mut_ptr().offset(stack_size.try_into().unwrap()) as *mut libc::c_void,
+            libc::CLONE_NEWCGROUP | libc::CLONE_NEWIPC | libc::CLONE_NEWNET | libc::CLONE_NEWNS | libc::CLONE_NEWPID | libc::CLONE_NEWUSER | libc::CLONE_NEWUTS,
+            std::ptr::null_mut()
+        );
+    }
+}
+
 fn main() {
     // Many of the operations here require root pivileges.
     unsafe {
@@ -38,37 +72,8 @@ fn main() {
         }
     }
 
-    // We will put the executable into a directory that is only accessible by us.
-    let working_directory = tempfile::Builder::new()
-        .prefix("container.")
-        .rand_bytes(8)
-        .tempdir()
-        .unwrap();
-    std::fs::set_permissions(working_directory.path(), std::fs::Permissions::from_mode(0o00700)).unwrap();
+    let container_directory = create_container_directory();
+    let _container_process = create_container_process(&container_directory);
 
-    print!("Press ENTER to continue...");
-    std::io::stdout().flush().unwrap();
-    let mut _string = String::new();
-    std::io::stdin().read_line(&mut _string).unwrap();
+    // FIXME: Can we communicate with the process?
 }
-    
-/*
-
-    let working_directory = tempfile::tempdir().unwrap();
-
-    std::fs::copy(
-        "/home/me/dev/containers/target/x86_64-unknown-linux-musl/debug/asynts-containers-system",
-        working_directory.path().join("app")
-    ).unwrap();
-
-    std::os::unix::fs::chroot(working_directory.path()).unwrap();
-    std::env::set_current_dir("/").unwrap();
-
-    // FIXME: We are still root here!
-
-    std::process::Command::new("./app")
-        .exec();
-    
-    unreachable!();
-}
-*/
