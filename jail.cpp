@@ -22,8 +22,6 @@
 //        If we change the old parameter to new 'root' directory, we
 //        gain access to everything!
 
-// FIXME: Rewrite target application in C++ as well.
-
 // FIXME: Error handling
 
 char container_directory[] = "/tmp/container.XXXXXXXX";

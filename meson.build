@@ -1,12 +1,11 @@
 project('containers', 'cpp',
-    default_options : ['c_std=c11', 'cpp_std=c++20'])
+    default_options : ['cpp_std=c++20'])
 
-# FIXME: Verify that we end up with musl libc
+libfmt_dep = dependency('fmt')
 
-fmt_dep = dependency('fmt', native : true)
-executable('jail', 'jail.cpp', dependencies : [fmt_dep], native : true)
+executable('jail', 'jail.cpp',
+  dependencies : [libfmt_dep])
 
-# FIXME: Link libfmt somehow.
+# FIXME: We do need a Rust application, otherwise, static linking is difficult.
 executable('application', 'application.cpp',
-    native : false,
-    link_args : ['-static'])
+  link_args : ['-static'])
