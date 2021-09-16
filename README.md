@@ -13,8 +13,12 @@ the stdin and stdout of the parent jail process.
 -   The system itself needs to be statically linked, since no dynamic linker will be
     avaliable.  A suitable toolchain needs to be installed:
 
-    ~~~none
+    ```none
     rustup target add x86_64-unknown-linux-musl
-    ~~~
+    ```
 
 ### Build Instructions
+
+-   `cargo build`
+
+-   `cargo run --bin asynts-jail
