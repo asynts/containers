@@ -19,6 +19,8 @@ the stdin and stdout of the parent jail process.
 
 ### Build Instructions
 
--   `cargo build`
-
--   `cargo run --bin asynts-jail
+```none
+RUSTFLAGS="-C target-feature=+crt-static" cargo build --bin asynts-example --target x86_64-unknown-linux-musl
+cargo build --bin asynts-jail
+sudo ./target/debug/asynts-jail
+```

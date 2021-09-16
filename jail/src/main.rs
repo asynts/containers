@@ -33,7 +33,7 @@ impl Service {
         // FIXME: Don't hardcode path to executable
         // FIXME: Currently, the executable is not statically linked
         std::fs::copy(
-            "/home/me/dev/jail/target/debug/asynts-example",
+            "/home/me/dev/jail/target/x86_64-unknown-linux-musl/debug/asynts-example",
             self.directory.as_ref().unwrap().path().join("application")
         ).unwrap();
     }
