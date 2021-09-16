@@ -11,23 +11,10 @@ the stdin and stdout of the parent jail process.
 ### Development Environment
 
 -   The system itself needs to be statically linked, since no dynamic linker will be
-    avaliable.  Currently, this only seems to be possible with musl libc.  Let's install the
-    toolchain:
+    avaliable.  A suitable toolchain needs to be installed:
 
     ~~~none
     rustup target add x86_64-unknown-linux-musl
     ~~~
 
--   Create build directory:
-
-    ~~~none
-    meson setup build --cross-file cross.ini
-    cd build/
-    ~~~
-
 ### Build Instructions
-
-~~~none
-meson compile
-sudo ./jail
-~~~
