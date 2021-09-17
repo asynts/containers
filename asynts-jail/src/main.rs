@@ -10,32 +10,22 @@ mod util {
     }
 }
 
-struct Stack {
-    _buffer: [u8; 0x1000]
-}
-impl Stack {
-    fn new() -> Stack {
-        Stack{
-            _buffer: [0; 0x1000]
-        }
-    }
-
-    fn top(&mut self) -> *mut u8 {
-        unsafe { self._buffer.as_mut_ptr().offset(0x1000) }
-    }
-}
-
+// Services are run in a jail, where they can not interact with other parts of the
+// system.  This isolation does not utilize a proper virtual machine, but relies on
+// functionality in the Linux kernel instead.
 struct Service {
     directory: Option<tempfile::TempDir>,
-    stack: Option<Stack>,
+    stack: Option<asynts_jail_sys::ChildStack>,
     child_pid: Option<i32>,
+    child_arguments: Option<asynts_jail_sys::ChildArguments>,
 }
 impl Service {
     fn new() -> Service {
         Service{
             directory: None,
             stack: None,
-            child_pid: None
+            child_pid: None,
+            child_arguments: None,
         }
     }
 
@@ -54,7 +44,6 @@ impl Service {
         );
 
         // FIXME: Don't hardcode path to executable
-        // FIXME: Currently, the executable is not statically linked
         std::fs::copy(
             "/home/me/dev/jail/target/x86_64-unknown-linux-musl/debug/asynts-example",
             self.directory.as_ref().unwrap().path().join("application")
@@ -63,16 +52,17 @@ impl Service {
 
     fn _spawn_application_process(&mut self) {
         assert!(self.stack.is_none());
-        self.stack = Some(Stack::new());
+        self.stack = Some(asynts_jail_sys::ChildStack::new());
 
         unsafe {
-            // NOTE: We do not create a new mount or network namespace.  This is, because
-            // we want to be able to share these between services.
+            self.child_arguments = Some(asynts_jail_sys::ChildArguments::new(self.directory.as_ref().unwrap().path().to_str().unwrap()));
+
+            // FIXME: We might want to share the mount and network namespaces.
             let retval = libc::clone(
                 asynts_jail_sys::child_main,
                 self.stack.as_mut().unwrap().top() as *mut libc::c_void,
-                libc::CLONE_NEWCGROUP | libc::CLONE_NEWIPC | libc::CLONE_NEWPID | libc::CLONE_NEWUSER | libc::CLONE_NEWUTS,
-                std::ptr::null_mut()
+                libc::CLONE_NEWCGROUP | libc::CLONE_NEWIPC | libc::CLONE_NEWPID | libc::CLONE_NEWUSER | libc::CLONE_NEWUTS | libc::CLONE_NEWNET | libc::CLONE_NEWNS,
+                &mut self.child_arguments.as_ref().unwrap() as *mut _ as *mut libc::c_void
             );
 
             assert!(retval >= 0);
