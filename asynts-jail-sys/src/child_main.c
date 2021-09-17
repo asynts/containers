@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/mount.h>
 
 // Refer to documentation in Rust bindings: 'asynts_jail_sys::ChildArgumentsFFI'.
@@ -19,12 +20,13 @@ int child_main_impl(struct child_args *args)
     // To be able to use 'pivot_root', the target directory needs to be a mount point.
     {
         int retval = mount(args->root_directory, args->root_directory, NULL, MS_BIND, NULL);
-
-        // FIXME: Currently, we fail here, are we already to restricted to use this function?
         assert(retval == 0);
     }
 
     // FIXME: https://github.com/asynts/jail/blob/2e872feea951746c18a4f29f74755e8fb075a696/jail.cpp
 
-    return 0;
+    // We do have to explicitly call 'exit()' here, because this process was created using
+    // 'clone()'.  Some cleanup, like flushing the standard output for example, would not
+    // happen otherwise.
+    exit(0);
 }

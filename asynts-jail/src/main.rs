@@ -62,7 +62,7 @@ impl Service {
                 asynts_jail_sys::child_main,
                 self.stack.as_mut().unwrap().top() as *mut libc::c_void,
                 libc::CLONE_NEWCGROUP | libc::CLONE_NEWIPC | libc::CLONE_NEWPID | libc::CLONE_NEWUSER | libc::CLONE_NEWUTS | libc::CLONE_NEWNET | libc::CLONE_NEWNS,
-                &mut self.child_arguments.as_ref().unwrap() as *mut _ as *mut libc::c_void
+                self.child_arguments.as_mut().unwrap().ffi()
             );
 
             assert!(retval >= 0);

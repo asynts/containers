@@ -25,8 +25,8 @@ impl ChildArguments {
 
     // The ChildArguments objects must be kept around as long as the 'ffi' object
     // is used.
-    pub unsafe fn ffi(&self) -> *const libc::c_void {
-        &self.implementation as *const _ as *const libc::c_void
+    pub unsafe fn ffi(&mut self) -> *mut libc::c_void {
+        &mut self.implementation as *mut _ as *mut libc::c_void
     }
 }
 
@@ -50,8 +50,5 @@ extern "C" {
 }
 
 pub extern "C" fn child_main(argument: *mut libc::c_void) -> libc::c_int {
-    unsafe {
-        let args = argument as *const ChildArguments;
-        child_main_impl((*args).ffi())
-    }
+    unsafe { child_main_impl(argument) }
 }
