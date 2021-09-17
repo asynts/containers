@@ -33,12 +33,10 @@ int child_main_impl(struct child_args *args)
         retval = chdir(args->root_directory);
         assert(retval == 0);
 
-        // For some reason, the Linux kernel provides this weird API where the old root
-        // is made avaliable in the new root.  I don't completely understand why, I suspect
-        // that all the mounts are tied to this mount and stuff would break otherwise?  But
-        // then again, we do drop it completely when we 'execve()'?
-        //
-        // FIXME: Figure out what this system call does internally.
+        // For some reason, the Linux kernel provides this weird API wher the old root is
+        // made avaliable in the new root.  I suspect, this is because it would otherwise
+        // not be possible to do this operation.  One could bind '/' into the new root
+        // beforehand, however, this may fall apart when the underlying mount is removed?
         retval = syscall(SYS_pivot_root, ".", ".");
         assert(retval == 0);
 
