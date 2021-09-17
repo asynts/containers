@@ -38,14 +38,11 @@ int child_main_impl(struct child_args *args)
         // that all the mounts are tied to this mount and stuff would break otherwise?  But
         // then again, we do drop it completely when we 'execve()'?
         //
-        // FIXME: Can we pass 'put_old=NULL'?
         // FIXME: Figure out what this system call does internally.
         retval = syscall(SYS_pivot_root, ".", ".");
         assert(retval == 0);
 
         // We do not need to unmount '.' since we call execve later.
-        //
-        // FIXME: Verify that this is actually correct!
     }
 
     // Now change what '/' means in the path resolution process.
@@ -66,8 +63,6 @@ int child_main_impl(struct child_args *args)
 
         // This will remove the last reference to the old root mount at '.'; it will automatically
         // be unmounted.
-        //
-        // FIXME: Verify that this is actually correct!
         execve("/bin/init", argv, envp);
 
         // Never reached.
