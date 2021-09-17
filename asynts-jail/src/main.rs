@@ -1,5 +1,6 @@
 extern crate libc;
 extern crate tempfile;
+extern crate asynts_jail_sys;
 
 use std::io::prelude::*;
 
@@ -64,18 +65,11 @@ impl Service {
         assert!(self.stack.is_none());
         self.stack = Some(Stack::new());
 
-        extern "C" fn child_main(_: *mut libc::c_void) -> libc::c_int {
-            // FIXME: Somehow, we SIGSEGV here?
-            //        https://github.com/rust-lang/rust/blob/d1d8145dffde1092135b571d1d19205fe2a8fc44/library/std/src/io/stdio.rs#L1205
-            println!("Executing in child process!");
-            0
-        }
-
         unsafe {
             // NOTE: We do not create a new mount or network namespace.  This is, because
             // we want to be able to share these between services.
             let retval = libc::clone(
-                child_main,
+                asynts_jail_sys::child_main,
                 self.stack.as_mut().unwrap().top() as *mut libc::c_void,
                 libc::CLONE_NEWCGROUP | libc::CLONE_NEWIPC | libc::CLONE_NEWPID | libc::CLONE_NEWUSER | libc::CLONE_NEWUTS,
                 std::ptr::null_mut()

@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
-    "jail",
-    "example",
+    "asynts-jail",
+    "asynts-jail-example",
+    "asynts-jail-sys",
 ]
