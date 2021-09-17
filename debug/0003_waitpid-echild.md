@@ -8,6 +8,12 @@ The `waitpid()` call returns an `ECHILD` error.
 
 -   If we add a delay before the `waitpid` call, everything works.
 
+-   The documentation of `clone()` states, that it returns the TID not the
+    PID.  Not sure if this is correct though.
+
+-   In a simple test case, it appeared to work with `SIGCHILD` in the flags.
+    https://paste.ee/p/OhD8e
+
 ### Ideas
 
 -   Make sure that all the `libc` stuff is gone.
@@ -16,6 +22,10 @@ The `waitpid()` call returns an `ECHILD` error.
 
 ### Theories
 
+-   I think it only worked by coincidence before, because both PID and TID were 1.
+
 ### Actions
 
 -   Used `nix` crate instead of `libc`.
+
+-   Pass `SIGCHLD` to `clone()`.
