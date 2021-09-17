@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -13,6 +14,8 @@ struct child_args {
 
 int child_main_impl(struct child_args *args)
 {
+    // FIXME: Somehow get UID=0 here?
+
     // Do not propagate changes to mounts to other namespaces.  Note that we are in
     // a new namespace because of 'CLONE_NEWNS'.
     {

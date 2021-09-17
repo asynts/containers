@@ -92,6 +92,8 @@ fn main() {
     // not too far off.
     assert!(util::is_root_user());
 
+    println!("jail: Executing as UID {}", nix::unistd::geteuid().as_raw());
+
     let mut service = Service::new();
     service.launch();
 
