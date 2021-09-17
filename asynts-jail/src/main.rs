@@ -40,6 +40,10 @@ impl Service {
         assert!(matches!(status, nix::sys::wait::WaitStatus::Exited(_, _)));
     }
 
+    fn _directory(&self) -> &std::path::Path {
+        self.directory.as_ref().unwrap().path()
+    }
+
     fn _prepare_directory(&mut self) {
         assert!(self.directory.is_none());
         self.directory = Some(
@@ -49,10 +53,11 @@ impl Service {
                 .unwrap()
         );
 
-        // FIXME: Don't hardcode path to executable
+        std::fs::create_dir(self._directory().join("bin")).unwrap();
+
         std::fs::copy(
-            "/home/me/dev/jail/target/x86_64-unknown-linux-musl/debug/asynts-jail-example",
-            self.directory.as_ref().unwrap().path().join("application")
+            std::env::current_exe().unwrap().parent().unwrap().join("../x86_64-unknown-linux-musl/debug/asynts-jail-example"),
+            self._directory().join("bin/init")
         ).unwrap();
     }
 

@@ -57,7 +57,7 @@ int child_main_impl(struct child_args *args)
     // Everything has been prepared; launch the application.
     {
         char *argv[] = {
-            strdup("/application"),
+            strdup("/bin/init"),
             NULL
         };
         char *envp[] = {
@@ -68,7 +68,7 @@ int child_main_impl(struct child_args *args)
         // be unmounted.
         //
         // FIXME: Verify that this is actually correct!
-        execve("/application", argv, envp);
+        execve("/bin/init", argv, envp);
 
         // Never reached.
         assert(0);
