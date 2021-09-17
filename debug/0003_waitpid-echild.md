@@ -4,17 +4,17 @@ The `waitpid()` call returns an `ECHILD` error.
 
 ### Notes
 
+-   It appears, the `waitpid` fails before `child_main` runs, or very close to it.
+
+-   If we add a delay before the `waitpid` call, everything works.
+
 ### Ideas
 
 -   Make sure that all the `libc` stuff is gone.
 
--   What does the `signal` argument to `clone()` mean, I've seen people pass
-    `SIGCHLD` there?
+-   Create a minimal example.
 
 ### Theories
-
--   I suspect, that the Rust runtime is eating the event that `waitpid()`
-    would pickup otherwise.
 
 ### Actions
 

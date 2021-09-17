@@ -36,11 +36,11 @@ impl Service {
     }
 
     fn wait(&self) {
-        let status = nix::sys::wait::waitpid(self.child_pid, None).unwrap();
+        // FIXME: If we do not sleep here, the 'waitpid' call will fail with
+        //        'ECHILD'.  It appears, something fishy is going on.
+        std::thread::sleep(std::time::Duration::from_millis(500));
 
-        // FIXME: This fails, because the process is already dead before we are
-        //        here.  Not sure why this would be an issue, but I suspect, that
-        //        the Rust runtime already ate that event.
+        let status = nix::sys::wait::waitpid(self.child_pid, None).unwrap();
         assert!(matches!(status, nix::sys::wait::WaitStatus::Exited(_, _)));
     }
 
