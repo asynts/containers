@@ -30,21 +30,6 @@ impl ChildArguments {
     }
 }
 
-pub struct ChildStack {
-    pub buffer: [u8; 0x1000]
-}
-impl ChildStack {
-    pub fn new() -> ChildStack {
-        ChildStack {
-            buffer: [0; 0x1000]
-        }
-    }
-
-    pub unsafe fn top(&mut self) -> *mut u8 {
-        self.buffer.as_mut_ptr().offset(0x1000)
-    }
-}
-
 extern "C" {
     fn child_main_impl(argument: *const libc::c_void) -> isize;
 }

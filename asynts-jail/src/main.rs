@@ -16,7 +16,7 @@ mod util {
 // functionality in the Linux kernel instead.
 struct Service {
     directory: Option<tempfile::TempDir>,
-    stack: Option<asynts_jail_sys::ChildStack>,
+    stack: [u8; 0x1000],
     child_pid: Option<nix::unistd::Pid>,
     child_arguments: Option<asynts_jail_sys::ChildArguments>,
 }
@@ -24,7 +24,7 @@ impl Service {
     fn new() -> Service {
         Service{
             directory: None,
-            stack: None,
+            stack: [0; 0x1000],
             child_pid: None,
             child_arguments: None,
         }
@@ -57,10 +57,6 @@ impl Service {
     }
 
     fn _spawn_application_process(&mut self) {
-        // FIXME: Get rid of that 'ChildStack' class, just use a raw buffer.
-        assert!(self.stack.is_none());
-        self.stack = Some(asynts_jail_sys::ChildStack::new());
-
         unsafe {
             self.child_arguments = Some(asynts_jail_sys::ChildArguments::new(self.directory.as_ref().unwrap().path().to_str().unwrap()));
 
@@ -77,7 +73,7 @@ impl Service {
             self.child_pid = Some(
                 nix::sched::clone(
                     callback,
-                    &mut self.stack.as_mut().unwrap().buffer,
+                    &mut self.stack,
                     flags,
                     Some(libc::SIGCHLD)
                 ).unwrap()
