@@ -7,5 +7,5 @@ mod util {
 fn main() {
     assert!(util::is_statically_linked());
 
-    println!("Hello, world!");
+    println!("This is the application!");
 }

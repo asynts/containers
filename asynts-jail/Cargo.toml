@@ -6,4 +6,5 @@ edition = "2021"
 [dependencies]
 libc = "0.2"
 tempfile = "3.2"
+nix = "0.22"
 asynts-jail-sys = { path = "../asynts-jail-sys" }
