@@ -8,21 +8,6 @@ operating system.
 There should really only be a single standalone executable that is able to access
 the stdin and stdout of the parent jail process.
 
-### Development Environment
-
--   The system itself needs to be statically linked, since no dynamic linker will be
-    avaliable.  A suitable toolchain needs to be installed:
-
-    ```none
-    rustup target add x86_64-unknown-linux-musl
-    ```
-
-### Build Instructions
-
-```none
-./bootstrap.sh
-```
-
 ### TODO
 
 -   Redefine the scope:
