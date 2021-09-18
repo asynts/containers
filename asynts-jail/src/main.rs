@@ -19,6 +19,7 @@ struct Service {
     stack: [u8; 0x1000],
     child_pid: Option<nix::unistd::Pid>,
     child_arguments: Option<asynts_jail_sys::ChildArguments>,
+    lock_fd: Option<std::os::unix::io::RawFd>,
 }
 impl Service {
     fn new() -> Service {
@@ -27,6 +28,7 @@ impl Service {
             stack: [0; 0x1000],
             child_pid: None,
             child_arguments: None,
+            lock_fd: None,
         }
     }
 
@@ -54,6 +56,19 @@ impl Service {
         );
 
         std::fs::create_dir(self._directory().join("bin")).unwrap();
+
+        let lock_path = self._directory().join("lock");
+
+        self.lock_fd = Some(
+            nix::fcntl::open(
+                lock_path.as_path(),
+                nix::fcntl::OFlag::O_CREAT | nix::fcntl::OFlag::O_WRONLY | nix::fcntl::OFlag::O_CLOEXEC,
+                nix::sys::stat::Mode::S_IRUSR | nix::sys::stat::Mode::S_IWUSR
+            ).unwrap()
+        );
+
+        // The child will wait for this lock until we give the go-ahead.
+        nix::fcntl::flock(self.lock_fd.unwrap(), nix::fcntl::FlockArg::LockExclusive).unwrap();
 
         std::fs::copy(
             std::env::current_exe().unwrap().parent().unwrap().join("../x86_64-unknown-linux-musl/debug/asynts-jail-example"),
@@ -83,6 +98,11 @@ impl Service {
                     Some(libc::SIGCHLD)
                 ).unwrap()
             );
+
+            // FIXME: Prepare 'uid_map' and 'gid_map' of child.
+
+            // We have everything prepared, the child process can startup.
+            nix::fcntl::flock(self.lock_fd.unwrap(), nix::fcntl::FlockArg::Unlock).unwrap();
         }
     }
 }

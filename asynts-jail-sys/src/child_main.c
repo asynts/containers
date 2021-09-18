@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <assert.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -6,6 +8,7 @@
 #include <string.h>
 #include <sys/mount.h>
 #include <sys/syscall.h>
+#include <sys/file.h>
 
 // Refer to documentation in Rust bindings: 'asynts_jail_sys::ChildArgumentsFFI'.
 struct child_args {
@@ -14,7 +17,22 @@ struct child_args {
 
 int child_main_impl(struct child_args *args)
 {
-    // FIXME: Somehow get UID=0 here?
+    // The parent will signal us when our 'uid_map' and 'gid_map' are configured.
+    {
+        int retval;
+
+        char *lock_path = NULL;
+        retval = asprintf(&lock_path, "%s/lock", args->root_directory);
+        assert(retval >= 0);
+
+        int lock_fd = retval = open(lock_path, O_WRONLY);
+        assert(retval >= 0);
+
+        retval = flock(lock_fd, LOCK_EX);
+        assert(retval >= 0);
+
+        free(lock_path);
+    }
 
     // Do not propagate changes to mounts to other namespaces.  Note that we are in
     // a new namespace because of 'CLONE_NEWNS'.
