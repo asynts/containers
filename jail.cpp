@@ -13,6 +13,8 @@
 
 #include <fmt/core.h>
 
+// FIXME: this is pretty mut a C program, no?
+
 // This function is used to write the '/proc/<pid>/uid_map' and
 // '/proc/<pid>/gid_map' files.  Refer to 'user_namespaces(7)'.
 static void write_map_file(const char *path, int true_id) {
@@ -125,17 +127,13 @@ void disable_mount_propagation() {
     }
 }
 
+// After this function completed, the filesystem root is moved into a temporary
+// directory, and it should not be possible for the application to escape.
 void set_root_to_new_tempdir() {
     char jaildir[] = "/tmp/jail.XXXXXX";
     {
         char *retval = mkdtemp(jaildir);
         assert(retval != NULL);
-    }
-
-    // From now on, we only work on this directory.
-    {
-        int retval = chdir(jaildir);
-        assert(retval == 0);
     }
 
     // To be able to use 'pivot_root', the target directory needs to be a mount point.
@@ -144,7 +142,28 @@ void set_root_to_new_tempdir() {
         assert(retval == 0);
     }
 
-    // FIXME: 'pivot_root'
+    // From now on, we only work on this directory.
+    {
+        int retval = chdir(jaildir);
+        assert(retval == 0);
+    }
+
+    {
+        // This sets our jaildir as root.  According to the documentation, the old
+        // root is still avaliable somehow, but should cease to exist when we call
+        // 'execve()'.
+        //
+        // FIXME: Verify that it is not possible to remount the old root.
+        int retval = syscall(SYS_pivot_root, ".", ".");
+        assert(retval == 0);
+    }
+
+    // Now change what '/' means in the path resolution process.  My understanding is,
+    // that this is only for backward compatibility.
+    {
+        int retval = chroot(".");
+        assert(retval == 0);
+    }
 }
 
 int main() {
