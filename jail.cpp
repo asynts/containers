@@ -3,11 +3,13 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <stdlib.h>
 
 #include <linux/sched.h>
 
 #include <sys/syscall.h>
 #include <sys/wait.h>
+#include <sys/mount.h>
 
 #include <fmt/core.h>
 
@@ -113,13 +115,45 @@ void clone_into_new_namespaces() {
     }
 }
 
+// FIXME: What does this do exactly; which scenario is prevented?
+void disable_mount_propagation() {
+    // Do not propagate changes to mounts to other namespaces.  Note that we are in
+    // a new namespace because of 'CLONE_NEWNS'.
+    {
+        int retval = mount(nullptr, "/", nullptr, MS_REC|MS_PRIVATE, nullptr);
+        assert(retval == 0);
+    }
+}
+
+void set_root_to_new_tempdir() {
+    char jaildir[] = "/tmp/jail.XXXXXX";
+    {
+        char *retval = mkdtemp(jaildir);
+        assert(retval != NULL);
+    }
+
+    // From now on, we only work on this directory.
+    {
+        int retval = chdir(jaildir);
+        assert(retval == 0);
+    }
+
+    // To be able to use 'pivot_root', the target directory needs to be a mount point.
+    {
+        int retval = mount(jaildir, jaildir, nullptr, MS_BIND, nullptr);
+        assert(retval == 0);
+    }
+
+    // FIXME: 'pivot_root'
+}
+
 int main() {
     // FIXME: Verify linux kernel compatebility.
 
     become_root_in_new_namespace();
     clone_into_new_namespaces();
-
-    // FIXME: Setup chroot / pivot_root jail
+    disable_mount_propagation();
+    set_root_to_new_tempdir();
 
     // FIXME: Execute application
 }
