@@ -1,4 +1,4 @@
-// Usage: jail <path>
+// Usage: jail <file> <args>...
 
 #include <sched.h>
 #include <unistd.h>
@@ -19,7 +19,18 @@
 
 // FIXME: this is almost a C program, no?
 
+// FIXME: Error handling
+
+// FIXME: It appears, that it is possible to escape the jail.
+//        'chw00t -0' seems to work.
+
+// FIXME: Add support for environment variables.
+
+// FIXME: We are still in some group which becomes 'nobody'.  I
+//        suspect, that this is the 'wheel' group my user is in.
+
 static char *jaildir;
+static char **jailargv;
 
 void prepare_jaildir(char *pathname) {
     char tempdir[] = "/tmp/jail.XXXXXX";
@@ -183,16 +194,29 @@ void set_root_to_new_tempdir() {
     }
 }
 
+// Everything has been prepared; launch the application.
+void execute_application() {
+    char *envp[] = {
+        nullptr
+    };
+
+    execve("/app", jailargv, envp);
+
+    // Never reached.
+    assert(0);
+}
+
 int main(int argc, char **argv) {
     // FIXME: Verify linux kernel compatebility.
 
-    assert(argc == 2);
+    assert(argc >= 2);
+    assert(argv[argc] == NULL);
+    jailargv = argv + 1;
 
     prepare_jaildir(argv[1]);
     become_root_in_new_namespace();
     clone_into_new_namespaces();
     disable_mount_propagation();
     set_root_to_new_tempdir();
-
-    // FIXME: Execute application
+    execute_application();
 }
