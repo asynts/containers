@@ -1,7 +1,0 @@
-[workspace]
-
-members = [
-    "asynts-jail",
-    "asynts-jail-example",
-    "asynts-jail-sys",
-]
