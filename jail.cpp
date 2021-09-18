@@ -2,6 +2,12 @@
 #include <unistd.h>
 #include <assert.h>
 #include <fcntl.h>
+#include <signal.h>
+
+#include <linux/sched.h>
+
+#include <sys/syscall.h>
+#include <sys/wait.h>
 
 #include <fmt/core.h>
 
@@ -12,8 +18,10 @@ static void write_map_file(const char *path, int true_id) {
 
     int idmap_fd;
     {
-        int retval = idmap_fd = open(path, O_WRONLY);
+        int retval = open(path, O_WRONLY);
         assert(retval >= 0);
+
+        idmap_fd = retval;
     }
 
     {
@@ -30,7 +38,7 @@ static void write_map_file(const char *path, int true_id) {
 
 // After executing this function, it will look like we are root and have all
 // capabilities, however, this only applies in a newly created user namespace.
-static void become_root_in_new_namespace() {
+void become_root_in_new_namespace() {
     uid_t true_effective_uid = geteuid();
     gid_t true_effective_gid = getegid();
 
@@ -46,8 +54,10 @@ static void become_root_in_new_namespace() {
     {
         int fd;
         {
-            int retval = fd = open("/proc/self/setgroups", O_WRONLY);
+            int retval = open("/proc/self/setgroups", O_WRONLY);
             assert(retval >= 0);
+
+            fd = retval;
         }
 
         {
@@ -68,6 +78,48 @@ static void become_root_in_new_namespace() {
     write_map_file("/proc/self/gid_map", true_effective_gid);
 }
 
+// This function only returns in the child.  It now has PID=1 does not share any
+// namespaces with the parent, other than the user namespace which was already
+// created.
+void clone_into_new_namespaces() {
+    struct clone_args clone_args = {0};
+    clone_args.flags = CLONE_NEWCGROUP | CLONE_NEWIPC | CLONE_NEWNET | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWUTS;
+    clone_args.exit_signal = SIGCHLD;
+
+    int pid;
+    {
+        int retval = syscall(SYS_clone3, &clone_args, sizeof(clone_args));
+        assert(retval >= 0);
+
+        pid = retval;
+    }
+
+    if (pid == 0) {
+        // Only the child returns from this function.
+        return;
+    } else {
+        // Wait for the child process to finish.
+        for(;;) {
+            int wstatus;
+
+            int retval = waitpid(pid, &wstatus, 0);
+
+            if (retval == -1 && errno == EINTR)
+                continue;
+
+            assert(retval == pid);
+            exit(WEXITSTATUS(wstatus));
+        }
+    }
+}
+
 int main() {
+    // FIXME: Verify linux kernel compatebility.
+
     become_root_in_new_namespace();
+    clone_into_new_namespaces();
+
+    // FIXME: Setup chroot / pivot_root jail
+
+    // FIXME: Execute application
 }
