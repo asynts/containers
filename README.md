@@ -25,6 +25,28 @@ the stdin and stdout of the parent jail process.
 
 ### TODO
 
+-   Redefine the scope:
+
+    One simple `jail` executable that runs an application isolated from everything
+    else.  The process that calls `jail` should not be privileged.
+
+    My understanding is the following:
+
+     1. First we use `unshare` to enter a new user namespace.
+
+     2. We setup `/proc/self/uid_map` and `/proc/self/gid_map` to appear as
+        root.
+
+     3. Now, we should be able to use `clone` to enter new namespaces.
+
+     4. We utilize `pivot_root` to hide the filesystem.
+
+     5. We execute `execve` to run the application.
+
+    Finally, I should verify that it is not possible to escape the jail.
+
+-   Rust is really hindering me here, this should be a simple C++ application.
+
 -   The following exploits work:
 
     ```none
