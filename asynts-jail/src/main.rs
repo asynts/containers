@@ -119,6 +119,8 @@ impl Service {
             nix::sys::stat::Mode::empty()
         ).unwrap();
 
+        // FIXME: This may be problematic, because the new process will have UID=0 in the
+        //        parent namespace.
         let uidmap_contents = format!("0 {} 1", nix::unistd::geteuid().as_raw());
 
         nix::unistd::write(uidmap_fd, uidmap_contents.as_bytes()).unwrap();
@@ -135,6 +137,8 @@ impl Service {
             nix::sys::stat::Mode::empty()
         ).unwrap();
 
+        // FIXME: This may be problematic, because the new process will have GID=0 in the
+        //        parent namespace.
         let gidmap_contents = format!("0 {} 1", nix::unistd::getegid().as_raw());
 
         nix::unistd::write(gidmap_fd, gidmap_contents.as_bytes()).unwrap();

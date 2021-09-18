@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 walkdir = "2"
 nix = "0.22"
+tempfile = "3.2"

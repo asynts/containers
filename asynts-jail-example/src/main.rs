@@ -1,5 +1,6 @@
 extern crate walkdir;
 extern crate nix;
+extern crate tempfile;
 
 mod util {
     pub fn is_statically_linked() -> bool {
@@ -31,6 +32,11 @@ fn _test_bind_mount() {
     nix::mount::mount::<str, str, str, str>(Some("/foo"), "/bar", None, nix::mount::MsFlags::MS_BIND, None).unwrap();
 
     nix::mount::umount("/bar").unwrap();
+}
+
+fn _test_tempfile() {
+    let tempdir = tempfile::tempdir().unwrap();
+    println!("tempdir={}", tempdir.path().display());
 }
 
 fn main() {

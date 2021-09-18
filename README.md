@@ -1,4 +1,4 @@
-How does docker work?  That's what I am trying to figure out, this is a barebone 
+How does docker work?  That's what I am trying to figure out, this is a barebone
 implementation of a container system.
 
 The goal is to run an appication in an environment where it can not interact with
@@ -20,7 +20,11 @@ the stdin and stdout of the parent jail process.
 ### Build Instructions
 
 ```none
-RUSTFLAGS="-C target-feature=+crt-static" cargo build --bin asynts-example --target x86_64-unknown-linux-musl
-cargo build --bin asynts-jail
-sudo ./target/debug/asynts-jail
+./bootstrap.sh
 ```
+
+### TODO
+
+-   Attempt to escape jail.
+
+    https://github.com/earthquake/chw00t

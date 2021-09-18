@@ -9,6 +9,7 @@
 #include <sys/mount.h>
 #include <sys/syscall.h>
 #include <sys/file.h>
+#include <sys/stat.h>
 
 // Refer to documentation in Rust bindings: 'asynts_jail_sys::ChildArgumentsFFI'.
 struct child_args {
@@ -53,12 +54,38 @@ int child_main_impl(struct child_args *args)
         assert(retval == 0);
     }
 
-    // Change the '/' mount point to new root.
+    // Do all remaining things in that directory.
+    {
+        int retval = chdir(args->root_directory);
+        assert(retval == 0);
+    }
+
+    // Mount a procfs into the jail.
     {
         int retval;
 
-        retval = chdir(args->root_directory);
+        retval = mkdir("proc", 0555);
         assert(retval == 0);
+
+        // FIXME: This provides access to way more things than I want to provide access to.
+        retval = mount(NULL, "proc", "proc", 0, NULL);
+        assert(retval == 0);
+    }
+
+    // Mount a tmpfs into the jail.
+    {
+        int retval;
+
+        retval = mkdir("tmp", 0777);
+        assert(retval == 0);
+
+        retval = mount(NULL, "tmp", "tmpfs", 0, NULL);
+        assert(retval == 0);
+    }
+
+    // Change the '/' mount point to new root.
+    {
+        int retval;
 
         // For some reason, the Linux kernel provides this weird API wher the old root is
         // made avaliable in the new root.  I suspect, this is because it would otherwise
