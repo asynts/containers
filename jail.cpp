@@ -1,3 +1,5 @@
+// Usage: jail <path>
+
 #include <sched.h>
 #include <unistd.h>
 #include <assert.h>
@@ -13,7 +15,28 @@
 
 #include <fmt/core.h>
 
-// FIXME: this is pretty mut a C program, no?
+#include <filesystem>
+
+// FIXME: this is almost a C program, no?
+
+static char *jaildir;
+
+void prepare_jaildir(char *pathname) {
+    char tempdir[] = "/tmp/jail.XXXXXX";
+    {
+        char *retval = mkdtemp(tempdir);
+        assert(retval != NULL);
+    }
+
+    {
+        char *retval = strdup(tempdir);
+        assert(retval != NULL);
+
+        jaildir = retval;
+    }
+
+    std::filesystem::copy(pathname, std::filesystem::path{jaildir} / "app");
+}
 
 // This function is used to write the '/proc/<pid>/uid_map' and
 // '/proc/<pid>/gid_map' files.  Refer to 'user_namespaces(7)'.
@@ -130,12 +153,6 @@ void disable_mount_propagation() {
 // After this function completed, the filesystem root is moved into a temporary
 // directory, and it should not be possible for the application to escape.
 void set_root_to_new_tempdir() {
-    char jaildir[] = "/tmp/jail.XXXXXX";
-    {
-        char *retval = mkdtemp(jaildir);
-        assert(retval != NULL);
-    }
-
     // To be able to use 'pivot_root', the target directory needs to be a mount point.
     {
         int retval = mount(jaildir, jaildir, nullptr, MS_BIND, nullptr);
@@ -166,9 +183,12 @@ void set_root_to_new_tempdir() {
     }
 }
 
-int main() {
+int main(int argc, char **argv) {
     // FIXME: Verify linux kernel compatebility.
 
+    assert(argc == 2);
+
+    prepare_jaildir(argv[1]);
     become_root_in_new_namespace();
     clone_into_new_namespaces();
     disable_mount_propagation();
