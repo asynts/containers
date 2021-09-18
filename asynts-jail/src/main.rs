@@ -99,11 +99,47 @@ impl Service {
                 ).unwrap()
             );
 
-            // FIXME: Prepare 'uid_map' and 'gid_map' of child.
+            self._configure_uid_mappings();
+            self._configure_gid_mappings();
 
             // We have everything prepared, the child process can startup.
             nix::fcntl::flock(self.lock_fd.unwrap(), nix::fcntl::FlockArg::Unlock).unwrap();
+
+            nix::unistd::close(self.lock_fd.unwrap()).unwrap();
+            self.lock_fd = None;
         }
+    }
+
+    fn _configure_uid_mappings(&mut self) {
+        let uidmap_path = format!("/proc/{}/uid_map", self.child_pid.unwrap().as_raw());
+
+        let uidmap_fd = nix::fcntl::open(
+            uidmap_path.as_str(),
+            nix::fcntl::OFlag::O_WRONLY,
+            nix::sys::stat::Mode::empty()
+        ).unwrap();
+
+        let uidmap_contents = format!("0 {} 1", nix::unistd::geteuid().as_raw());
+
+        nix::unistd::write(uidmap_fd, uidmap_contents.as_bytes()).unwrap();
+
+        nix::unistd::close(uidmap_fd).unwrap();
+    }
+
+    fn _configure_gid_mappings(&mut self) {
+        let gidmap_path = format!("/proc/{}/gid_map", self.child_pid.unwrap().as_raw());
+
+        let gidmap_fd = nix::fcntl::open(
+            gidmap_path.as_str(),
+            nix::fcntl::OFlag::O_WRONLY,
+            nix::sys::stat::Mode::empty()
+        ).unwrap();
+
+        let gidmap_contents = format!("0 {} 1", nix::unistd::getegid().as_raw());
+
+        nix::unistd::write(gidmap_fd, gidmap_contents.as_bytes()).unwrap();
+
+        nix::unistd::close(gidmap_fd).unwrap();
     }
 }
 

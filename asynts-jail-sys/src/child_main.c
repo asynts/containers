@@ -31,8 +31,14 @@ int child_main_impl(struct child_args *args)
         retval = flock(lock_fd, LOCK_EX);
         assert(retval >= 0);
 
+        // We can safely get rid of that lock file now.
+        retval = unlink(lock_path);
+        assert(retval == 0);
+
         free(lock_path);
     }
+
+    printf("child: UID=%i GID=%i eUID=%i eGID=%i\n", getuid(), getgid(), geteuid(), getegid());
 
     // Do not propagate changes to mounts to other namespaces.  Note that we are in
     // a new namespace because of 'CLONE_NEWNS'.

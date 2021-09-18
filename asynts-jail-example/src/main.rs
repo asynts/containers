@@ -30,8 +30,9 @@ fn test_bind_mount() {
     std::fs::create_dir("/foo").unwrap();
     std::fs::create_dir("/bar").unwrap();
 
-    // FIXME: This fails because we do not appear to have the permissions?
     nix::mount::mount::<str, str, str, str>(Some("/foo"), "/bar", None, nix::mount::MsFlags::MS_BIND, None).unwrap();
+
+    nix::mount::umount("/bar").unwrap();
 }
 
 fn main() {
