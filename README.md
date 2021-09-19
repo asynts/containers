@@ -1,54 +1,29 @@
-How does docker work?  That's what I am trying to figure out, this is a barebone
-implementation of a container system.
+How does docker work?  That's what I am trying to figure out, by writing my own
+container implementation.
 
-The goal is to run an appication in an environment where it can not interact with
-other processes or data.  At least provided that there aren't any issues in the
-operating system.
+### Details
 
-There should really only be a single standalone executable that is able to access
-the stdin and stdout of the parent jail process.
+The goal is to run an application in an environment where it can not interact with
+other processes or files.  The stdin and stdout file descriptors remain accessible
+and can be used to communicate with the host.
 
-### TODO
+The application itself can only see itself as `/sbin/init` and has no access to
+other files.
 
--   Redefine the scope:
+From the perspective of the application it run as the init process with process id 1.
+It looks like, it is executed by the root user with user id 0 and group id 0.
 
-    One simple `jail` executable that runs an application isolated from everything
-    else.  The process that calls `jail` should not be privileged.
+If the user that executes `jail` has supplementary groups, they will appear as group
+`nobody` with group id 65534.  There are also a few restrictions to which system
+calls can be used, in particular `setgroups` can not be used to get rid of the
+additional groups.
 
-    My understanding is the following:
+The application itself, needs to be statically linked, because no dynamic linker
+is avaliable.
 
-     1. First we use `unshare` to enter a new user namespace.
+### Examples
 
-     2. We setup `/proc/self/uid_map` and `/proc/self/gid_map` to appear as
-        root.
-
-     3. Now, we should be able to use `clone` to enter new namespaces.
-
-     4. We utilize `pivot_root` to hide the filesystem.
-
-     5. We execute `execve` to run the application.
-
-    Finally, I should verify that it is not possible to escape the jail.
-
--   Rust is really hindering me here, this should be a simple C++ application.
-
--   The following exploits work:
-
-    ```none
-    /bin/chw00t -0 --dir foo
-    /bin/chw00t -1 --dir foo
-    /bin/chw00t -2 --dir foo
-    /bin/chw00t -5 --dir foo --tempdir bar --nestdir baz
-    /bin/chw00t -9 --dir foo
-    ```
-
-    https://github.com/earthquake/chw00t
-
--   The following exploits may work:
-
-    ```none
-    /bin/chw00t -3 --dir foo
-    /bin/chw00t -4 --dir foo --tempdir bar
-    ```
-
-    https://github.com/earthquake/chw00t
+```none
+$ jail ./example
+Hello, world!
+```

@@ -1,12 +1,9 @@
 #define _GNU_SOURCE
 
-// Usage: jail <file> <args>...
-
 #include <sched.h>
 #include <unistd.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
@@ -19,15 +16,11 @@
 #include <sys/mount.h>
 #include <sys/stat.h>
 
-// FIXME: Verify headers.
-
-// FIXME: Error handling
-
 // FIXME: Consistency: ' and `
 
-// FIXME: Documentation
-
 // FIXME: Verify that no file descriptors are leaked
+
+// FIXME: Memory leaks? (Don't matter)
 
 static char *jaildir;
 static char **jailargv;
@@ -287,7 +280,11 @@ void execute_application() {
 int main(int argc, char **argv) {
     // FIXME: Verify linux kernel compatebility.
 
-    assert(argc >= 2);
+    if (argc < 2) {
+        fprintf(stderr, "Usage: jail <executable> <args>...\n");
+        exit(1);
+    }
+
     assert(argv[argc] == NULL);
     jailargv = argv + 1;
 
