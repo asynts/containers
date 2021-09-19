@@ -26,9 +26,6 @@
 
 // FIXME: Add support for environment variables.
 
-// FIXME: We are still in some group which becomes 'nobody'.  I
-//        suspect, that this is the 'wheel' group my user is in.
-
 static char *jaildir;
 static char **jailargv;
 
@@ -89,6 +86,9 @@ void become_root_in_new_namespace() {
     // This is an oddity of Linux; seems to be a workaround for some security
     // issue.  Essentially, we need to forbid the 'setgroups' system call, which
     // will be allowed again when '/proc/self/gid_map' has been written.
+    //
+    // This is particular annoying, because we can not leave supplementatry groups
+    // so any other groups, e.g. 'wheel' are mapped to 'nobody'.
     {
         int fd;
         {
