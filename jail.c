@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 // Usage: jail <file> <args>...
 
 #include <sched.h>
@@ -6,18 +8,18 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <stdio.h>
 
 #include <linux/sched.h>
 
 #include <sys/syscall.h>
 #include <sys/wait.h>
 #include <sys/mount.h>
+#include <sys/stat.h>
 
-#include <fmt/core.h>
-
-#include <filesystem>
-
-// FIXME: this is almost a C program, no?
+// FIXME: Verify headers.
 
 // FIXME: Error handling
 
@@ -25,8 +27,49 @@
 
 // FIXME: Documentation
 
+// FIXME: Verify that no file descriptors are leaked
+
 static char *jaildir;
 static char **jailargv;
+
+static void copy_file(const char *source, const char *target) {
+    int source_fd;
+    {
+        int retval = open(source, O_RDONLY);
+        assert(retval >= 0);
+
+        source_fd = retval;
+    }
+
+    int target_fd;
+    {
+        int retval = open(target, O_WRONLY|O_CREAT, 0777);
+        assert(retval >= 0);
+
+        target_fd = retval;
+    }
+
+    struct stat statbuf;
+    {
+        int retval = fstat(source_fd, &statbuf);
+        assert(retval == 0);
+    }
+
+    {
+        ssize_t retval = copy_file_range(source_fd, NULL, target_fd, NULL, statbuf.st_size, 0);
+        assert(retval == statbuf.st_size);
+    }
+
+    {
+        int retval = close(source_fd);
+        assert(retval == 0);
+    }
+
+    {
+        int retval = close(target_fd);
+        assert(retval == 0);
+    }
+}
 
 void prepare_jaildir(char *pathname) {
     char tempdir[] = "/tmp/jail.XXXXXX";
@@ -42,13 +85,38 @@ void prepare_jaildir(char *pathname) {
         jaildir = retval;
     }
 
-    std::filesystem::copy(pathname, std::filesystem::path{jaildir} / "app");
+    // Create `/sbin`.
+    char *sbin_path = NULL;
+    {
+        int retval = asprintf(&sbin_path, "%s/sbin", jaildir);
+        assert(retval >= 0);
+    }
+    {
+        // This will not be created by the root user, but this does not matter,
+        // because we edit `/proc/self/uid_map`.
+        int retval = mkdir(sbin_path, 0777);
+        assert(retval == 0);
+    }
+    free(sbin_path);
+
+    // Copy application to `/sbin/init`.
+    char *application_path = NULL;
+    {
+        int retval = asprintf(&application_path, "%s/sbin/init", jaildir);
+        assert(retval >= 0);
+    }
+    copy_file(pathname, application_path);
+    free(application_path);
 }
 
 // This function is used to write the '/proc/<pid>/uid_map' and
 // '/proc/<pid>/gid_map' files.  Refer to 'user_namespaces(7)'.
 static void write_map_file(const char *path, int true_id) {
-    std::string idmap_content = fmt::format("0 {} 1", true_id);
+    char *idmap_content = NULL;
+    {
+        int retval = asprintf(&idmap_content, "0 %i 1", true_id);
+        assert(retval >= 0);
+    }
 
     int idmap_fd;
     {
@@ -59,15 +127,17 @@ static void write_map_file(const char *path, int true_id) {
     }
 
     {
-        ssize_t retval = write(idmap_fd, idmap_content.data(), idmap_content.size());
+        ssize_t retval = write(idmap_fd, idmap_content, strlen(idmap_content));
         assert(retval >= 0);
-        assert((size_t)retval == idmap_content.size());
+        assert((size_t)retval == strlen(idmap_content));
     }
 
     {
         int retval = close(idmap_fd);
         assert(retval == 0);
     }
+
+    free(idmap_content);
 }
 
 // After executing this function, it will look like we are root and have all
@@ -155,7 +225,7 @@ void disable_mount_propagation() {
     // Do not propagate changes to mounts to other namespaces.  Note that we are in
     // a new namespace because of 'CLONE_NEWNS'.
     {
-        int retval = mount(nullptr, "/", nullptr, MS_REC|MS_PRIVATE, nullptr);
+        int retval = mount(NULL, "/", NULL, MS_REC|MS_PRIVATE, NULL);
         assert(retval == 0);
     }
 }
@@ -165,7 +235,7 @@ void disable_mount_propagation() {
 void set_root_to_new_tempdir() {
     // To be able to use 'pivot_root', the target directory needs to be a mount point.
     {
-        int retval = mount(jaildir, jaildir, nullptr, MS_BIND, nullptr);
+        int retval = mount(jaildir, jaildir, NULL, MS_BIND, NULL);
         assert(retval == 0);
     }
 
@@ -204,10 +274,11 @@ void set_root_to_new_tempdir() {
 // Everything has been prepared; launch the application.
 void execute_application() {
     char *envp[] = {
-        nullptr
+        NULL
     };
 
-    execve("/app", jailargv, envp);
+    jailargv[0] = strdup("/sbin/init");
+    execve("/sbin/init", jailargv, envp);
 
     // Never reached.
     assert(0);

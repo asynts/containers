@@ -1,10 +1,7 @@
-project('jail', 'c', 'cpp',
-    default_options : ['c_std=c11', 'cpp_std=c++20'])
+project('jail', 'c',
+    default_options : ['c_std=c11'])
 
-fmt_dep = dependency('fmt')
-
-executable('jail', 'jail.cpp',
-    dependencies : [fmt_dep])
+executable('jail', 'jail.c')
 
 executable('example', 'example.c',
     link_args : ['-static'])

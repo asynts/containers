@@ -7,10 +7,10 @@
 // If the user that runs 'jail' has supplementary groups, then they will
 // appear as group 'nobody' with GID=65534.
 //
-// The application itself is located at '/app' and is the only file that is
-// exposed.  Since there is no dynamic linker or any libraries avaliable,
-// this executable needs to be statically linked and must not rely on
-// filesystems such as '/tmp' or '/proc' to be present.
+// The application itself is located at '/sbin/init' and is the only file
+// that is exposed.  Since there is no dynamic linker or any libraries
+// avaliable, this executable needs to be statically linked and must not
+// rely on filesystems such as '/tmp' or '/proc' to be present.
 
 #include <stdio.h>
 
