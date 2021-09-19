@@ -24,8 +24,6 @@
 // FIXME: It appears, that it is possible to escape the jail.
 //        'chw00t -0' seems to work.
 
-// FIXME: Add support for environment variables.
-
 static char *jaildir;
 static char **jailargv;
 
