@@ -24,6 +24,8 @@
 // FIXME: It appears, that it is possible to escape the jail.
 //        'chw00t -0' seems to work.
 
+// FIXME: Consistency: ' and `
+
 static char *jaildir;
 static char **jailargv;
 
@@ -188,6 +190,14 @@ void set_root_to_new_tempdir() {
     // that this is only for backward compatibility.
     {
         int retval = chroot(".");
+        assert(retval == 0);
+    }
+
+    // We need to unmount the old root directory.  Otherwise, we could escape with
+    // `chdir("..")`.  The mount point is still busy because this executable is using
+    // it until we `execve()`.
+    {
+        int retval = umount2(".", MNT_DETACH);
         assert(retval == 0);
     }
 }
