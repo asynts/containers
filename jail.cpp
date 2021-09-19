@@ -21,10 +21,9 @@
 
 // FIXME: Error handling
 
-// FIXME: It appears, that it is possible to escape the jail.
-//        'chw00t -0' seems to work.
-
 // FIXME: Consistency: ' and `
+
+// FIXME: Documentation
 
 static char *jaildir;
 static char **jailargv;
