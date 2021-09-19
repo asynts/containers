@@ -4,8 +4,8 @@ container implementation.
 ### Details
 
 The goal is to run an application in an environment where it can not interact with
-other processes or files.  The stdin and stdout file descriptors remain accessible
-and can be used to communicate with the host.
+other processes or files.  The stdin, stdout and stderr file descriptors remain
+accessible and can be used to communicate with the host.
 
 The application itself can only see itself as `/sbin/init` and has no access to
 other files.

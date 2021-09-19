@@ -16,16 +16,10 @@
 #include <sys/mount.h>
 #include <sys/stat.h>
 
-// FIXME: Verify that no file descriptors are leaked
-
-// FIXME: Memory leaks? (Don't matter)
-
-// FIXME: Go through the code one final time.
-
 static char *jaildir;
 static char **jailargv;
 
-static void copy_file(const char *source, const char *target) {
+static void copy_executable_file(const char *source, const char *target) {
     int source_fd;
     {
         int retval = open(source, O_RDONLY);
@@ -63,14 +57,13 @@ static void copy_file(const char *source, const char *target) {
         assert(retval == 0);
     }
 }
-
+// Later, the application will be restricted such that only this directory is visible.
 void prepare_jaildir(char *pathname) {
     char tempdir[] = "/tmp/jail.XXXXXX";
     {
         char *retval = mkdtemp(tempdir);
         assert(retval != NULL);
     }
-
     {
         char *retval = strdup(tempdir);
         assert(retval != NULL);
@@ -98,13 +91,14 @@ void prepare_jaildir(char *pathname) {
         int retval = asprintf(&application_path, "%s/sbin/init", jaildir);
         assert(retval >= 0);
     }
-    copy_file(pathname, application_path);
+    copy_executable_file(pathname, application_path);
     free(application_path);
 }
 
 // This function is used to write the `/proc/<pid>/uid_map` or
 // `/proc/<pid>/gid_map` files.  Refer to `user_namespaces(7)`.
 static void write_map_file(const char *path, int true_id) {
+    // Become root in the new user namespace, map our id to the root id.
     char *idmap_content = NULL;
     {
         int retval = asprintf(&idmap_content, "0 %i 1", true_id);
@@ -132,7 +126,6 @@ static void write_map_file(const char *path, int true_id) {
 
     free(idmap_content);
 }
-
 // After executing this function, it will look like we are root and have all
 // capabilities, however, this only applies in a newly created user namespace.
 void become_root_in_new_namespace() {
@@ -146,8 +139,7 @@ void become_root_in_new_namespace() {
     }
 
     // This is an oddity of Linux; seems to be a workaround for some security
-    // issue.  Essentially, we need to forbid the `setgroups` system call, which
-    // will be allowed again when `/proc/self/gid_map` has been written.
+    // issue.  Essentially, we need to forbid the `setgroups` system call.
     //
     // This is particular annoying, because we can not leave supplementatry groups
     // so any other groups, e.g. `wheel` are mapped to `nobody`.
@@ -184,6 +176,8 @@ void become_root_in_new_namespace() {
 void clone_into_new_namespaces() {
     struct clone_args clone_args = {0};
     clone_args.flags = CLONE_NEWCGROUP | CLONE_NEWIPC | CLONE_NEWNET | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWUTS;
+
+    // If we did not specify this flag, it would not be possible to wait for the child.
     clone_args.exit_signal = SIGCHLD;
 
     int pid;
@@ -215,7 +209,7 @@ void clone_into_new_namespaces() {
 
 // As I understand it, mount propagation is about sub-mounts.  If something is mounted
 // somewhere, we do not want this to modify other mount namespaces.  Note, that we are
-// in our own mount namespace cine we ran `clone3()` with `CLONE_NEWNS`.
+// in our own mount namespace since we ran `clone3()` with `CLONE_NEWNS`.
 void disable_mount_propagation() {
     int retval = mount(NULL, "/", NULL, MS_REC|MS_PRIVATE, NULL);
     assert(retval == 0);
@@ -279,6 +273,7 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+    // Trim prefix and use as argv in `execve()` call.
     assert(argv[argc] == NULL);
     jailargv = argv + 1;
 
