@@ -20,6 +20,8 @@
 
 // FIXME: Memory leaks? (Don't matter)
 
+// FIXME: Go through the code one final time.
+
 static char *jaildir;
 static char **jailargv;
 
@@ -272,8 +274,6 @@ void execute_application() {
 }
 
 int main(int argc, char **argv) {
-    // FIXME: Verify linux kernel compatebility.
-
     if (argc < 2) {
         fprintf(stderr, "Usage: jail <executable> <args>...\n");
         exit(1);
