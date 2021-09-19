@@ -16,8 +16,6 @@
 #include <sys/mount.h>
 #include <sys/stat.h>
 
-// FIXME: Consistency: ' and `
-
 // FIXME: Verify that no file descriptors are leaked
 
 // FIXME: Memory leaks? (Don't matter)
@@ -102,8 +100,8 @@ void prepare_jaildir(char *pathname) {
     free(application_path);
 }
 
-// This function is used to write the '/proc/<pid>/uid_map' and
-// '/proc/<pid>/gid_map' files.  Refer to 'user_namespaces(7)'.
+// This function is used to write the `/proc/<pid>/uid_map` or
+// `/proc/<pid>/gid_map` files.  Refer to `user_namespaces(7)`.
 static void write_map_file(const char *path, int true_id) {
     char *idmap_content = NULL;
     {
@@ -146,11 +144,11 @@ void become_root_in_new_namespace() {
     }
 
     // This is an oddity of Linux; seems to be a workaround for some security
-    // issue.  Essentially, we need to forbid the 'setgroups' system call, which
-    // will be allowed again when '/proc/self/gid_map' has been written.
+    // issue.  Essentially, we need to forbid the `setgroups` system call, which
+    // will be allowed again when `/proc/self/gid_map` has been written.
     //
     // This is particular annoying, because we can not leave supplementatry groups
-    // so any other groups, e.g. 'wheel' are mapped to 'nobody'.
+    // so any other groups, e.g. `wheel` are mapped to `nobody`.
     {
         int fd;
         {
@@ -173,7 +171,7 @@ void become_root_in_new_namespace() {
     }
 
     // Pretend that we are the root user with UID=0 and GID=0.  If we did not do
-    // this, we would lose all capabilities when we call 'execve()'.
+    // this, we would lose all capabilities when we call `execve()`.
     write_map_file("/proc/self/uid_map", true_effective_uid);
     write_map_file("/proc/self/gid_map", true_effective_gid);
 }
@@ -216,7 +214,7 @@ void clone_into_new_namespaces() {
 // FIXME: What does this do exactly; which scenario is prevented?
 void disable_mount_propagation() {
     // Do not propagate changes to mounts to other namespaces.  Note that we are in
-    // a new namespace because of 'CLONE_NEWNS'.
+    // a new namespace because of `CLONE_NEWNS`.
     {
         int retval = mount(NULL, "/", NULL, MS_REC|MS_PRIVATE, NULL);
         assert(retval == 0);
@@ -226,7 +224,7 @@ void disable_mount_propagation() {
 // After this function completed, the filesystem root is moved into a temporary
 // directory, and it should not be possible for the application to escape.
 void set_root_to_new_tempdir() {
-    // To be able to use 'pivot_root', the target directory needs to be a mount point.
+    // To be able to use `pivot_root`, the target directory needs to be a mount point.
     {
         int retval = mount(jaildir, jaildir, NULL, MS_BIND, NULL);
         assert(retval == 0);
@@ -241,14 +239,12 @@ void set_root_to_new_tempdir() {
     {
         // This sets our jaildir as root.  According to the documentation, the old
         // root is still avaliable somehow, but should cease to exist when we call
-        // 'execve()'.
-        //
-        // FIXME: Verify that it is not possible to remount the old root.
+        // `execve()`.
         int retval = syscall(SYS_pivot_root, ".", ".");
         assert(retval == 0);
     }
 
-    // Now change what '/' means in the path resolution process.  My understanding is,
+    // Now change what `/` means in the path resolution process.  My understanding is,
     // that this is only for backward compatibility.
     {
         int retval = chroot(".");
