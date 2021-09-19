@@ -211,14 +211,12 @@ void clone_into_new_namespaces() {
     }
 }
 
-// FIXME: What does this do exactly; which scenario is prevented?
+// As I understand it, mount propagation is about sub-mounts.  If something is mounted
+// somewhere, we do not want this to modify other mount namespaces.  Note, that we are
+// in our own mount namespace cine we ran `clone3()` with `CLONE_NEWNS`.
 void disable_mount_propagation() {
-    // Do not propagate changes to mounts to other namespaces.  Note that we are in
-    // a new namespace because of `CLONE_NEWNS`.
-    {
-        int retval = mount(NULL, "/", NULL, MS_REC|MS_PRIVATE, NULL);
-        assert(retval == 0);
-    }
+    int retval = mount(NULL, "/", NULL, MS_REC|MS_PRIVATE, NULL);
+    assert(retval == 0);
 }
 
 // After this function completed, the filesystem root is moved into a temporary
