@@ -25,5 +25,11 @@ is avaliable.
 
 ```none
 $ jail ./example
-Hello, world!
+UID=0 (eUID=0)
+GID=0 (eGID=0)
+PID=1 PPID=0
+Walking directory '/':
+  /
+  /sbin
+  /sbin/init
 ```
